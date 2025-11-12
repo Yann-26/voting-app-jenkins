@@ -11,7 +11,7 @@ pipeline {
         SLACK_CREDENTIALS_ID = 'demo-channel'
 
         // Tomcat URL
-        TOMCAT_URL = 'http://localhost:9090/manager/text'
+        TOMCAT_URL = 'http://localhost:9090'
     }
 
     options {
