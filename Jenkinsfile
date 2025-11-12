@@ -50,7 +50,7 @@ pipeline {
                    echo '🚀 Deploying WAR file to Tomcat...'
 
                    // Use Jenkins credentials safely for Tomcat
-                   withCredentials([usernamePassword(credentialsId: 'tomcat-creds',
+                   withCredentials([usernamePassword(credentialsId: '39eead8c-6c36-422b-810d-5758be33fce2',
                                                     usernameVariable: 'TOMCAT_USER',
                                                     passwordVariable: 'TOMCAT_PASS')]) {
                        sh '''
