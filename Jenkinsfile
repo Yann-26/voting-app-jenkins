@@ -47,22 +47,41 @@ pipeline {
 
            stage('Deploy to Tomcat') {
                steps {
-                   echo '🚀 Deploying WAR file to Tomcat...'
+                   echo '🚀 Deploying application to Tomcat...'
 
-                   // Use Jenkins credentials safely for Tomcat
                    withCredentials([usernamePassword(credentialsId: '39eead8c-6c36-422b-810d-5758be33fce2',
                                                     usernameVariable: 'TOMCAT_USER',
                                                     passwordVariable: 'TOMCAT_PASS')]) {
                        sh '''
-                           WAR_FILE=$(ls target/*.war | head -n 1)
-                           echo "Deploying $WAR_FILE to Tomcat..."
-                           curl -u $TOMCAT_USER:$TOMCAT_PASS \
-                                -T "$WAR_FILE" \
+                           set -eu
+
+                           # Find first WAR or JAR file produced by the build
+                           ARTIFACT=$(find target -maxdepth 1 -type f -name "*.war" -o -name "*.jar" | head -n 1 || true)
+
+                           if [ -z "$ARTIFACT" ]; then
+                             echo "ERROR: No WAR or JAR file found in target/"
+                             echo "Listing target/ for debugging:"
+                             ls -al target || true
+                             exit 1
+                           fi
+
+                           echo "Deploying $ARTIFACT to Tomcat..."
+
+                           # If it's a JAR, rename to WAR for Tomcat deploy
+                           if [[ "$ARTIFACT" == *.jar ]]; then
+                               TMP_WAR="${ARTIFACT%.jar}.war"
+                               cp "$ARTIFACT" "$TMP_WAR"
+                               ARTIFACT="$TMP_WAR"
+                           fi
+
+                           curl --fail -u "$TOMCAT_USER:$TOMCAT_PASS" \
+                                -T "$ARTIFACT" \
                                 "$TOMCAT_URL/deploy?path=/myapp&update=true"
                        '''
                    }
                }
            }
+
        }
 
        post {
