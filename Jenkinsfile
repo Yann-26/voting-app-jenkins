@@ -7,7 +7,7 @@ pipeline {
         PATH = "$MAVEN_HOME/bin:$PATH"
 
         // Slack settings
-        SLACK_CHANNEL = '##slackup_simplilearn_notifications'
+        SLACK_CHANNEL = '#slackup_simplilearn_notifications'
         SLACK_CREDENTIALS_ID = 'demo-channel'
 
         // Tomcat URL
