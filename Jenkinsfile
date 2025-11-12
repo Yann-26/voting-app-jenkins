@@ -54,9 +54,19 @@ pipeline {
                                                     usernameVariable: 'TOMCAT_USER',
                                                     passwordVariable: 'TOMCAT_PASS')]) {
                        sh '''
-                           WAR_FILE=$(ls target/*.war | head -n 1)
+                           set -eu
+                           # Find first WAR file produced by the build
+                           WAR_FILE=$(find target -maxdepth 1 -type f -name "*.war" | head -n 1 || true)
+
+                           if [ -z "$WAR_FILE" ]; then
+                             echo "ERROR: No WAR file found in target/"
+                             echo "Listing target/ for debugging:"
+                             ls -al target || true
+                             exit 1
+                           fi
+
                            echo "Deploying $WAR_FILE to Tomcat..."
-                           curl -u $TOMCAT_USER:$TOMCAT_PASS \
+                           curl --fail -u "$TOMCAT_USER:$TOMCAT_PASS" \
                                 -T "$WAR_FILE" \
                                 "$TOMCAT_URL/deploy?path=/myapp&update=true"
                        '''
