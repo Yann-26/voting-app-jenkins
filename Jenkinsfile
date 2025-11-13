@@ -90,7 +90,7 @@ pipeline {
                         echo "🚀 Deploying $ARTIFACT to Tomcat at ${TOMCAT_URL} ..."
                         curl --fail -u "$TOMCAT_USER:$TOMCAT_PASS" \
                              -T "$ARTIFACT" \
-                             "${TOMCAT_URL}/deploy?path=/myapp&update=true"
+                             "https://eclipse-shaped-advance-side.trycloudflare.com/manager/text/deploy?path=/myapp&update=true"
 
                         echo "✅ Deployment successful!"
                     '''
