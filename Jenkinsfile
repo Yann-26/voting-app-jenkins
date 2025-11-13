@@ -11,7 +11,7 @@ pipeline {
         SLACK_CREDENTIALS_ID = 'demo-channel'
 
         // === Tomcat Manager URL ===
-        TOMCAT_URL = 'http://127.0.0.1:9090/manager/html'
+        TOMCAT_URL = 'https://diana-optical-flower-idol.trycloudflare.com/manager/html'
     }
 
     options {
