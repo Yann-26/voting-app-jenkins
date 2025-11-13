@@ -18,9 +18,9 @@ public class Main {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         Map<String, AtomicInteger> votes = new ConcurrentHashMap<>();
-        votes.put("Option A", new AtomicInteger(0));
-        votes.put("Option B", new AtomicInteger(0));
-        votes.put("Option C", new AtomicInteger(0));
+        votes.put("Apple", new AtomicInteger(0));
+        votes.put("Banana", new AtomicInteger(0));
+        votes.put("Mango", new AtomicInteger(0));
 
         server.createContext("/", new RootHandler(votes));
         server.createContext("/vote", new VoteHandler(votes));
