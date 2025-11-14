@@ -10,22 +10,22 @@ pipeline {
         SLACK_CHANNEL = '#slackup_simplilearn_notifications'
         SLACK_CREDENTIALS_ID = 'demo-channel'
 
-        // === Tomcat Manager URL ===
-        TOMCAT_URL = 'http://localhost:9090/manager/html'
+        // === Tomcat Manager Text URL ===
+        TOMCAT_DEPLOY_URL = 'http://localhost:9090/manager/text'
     }
 
     options {
-        // Show timestamps in console log
         timestamps()
     }
 
     stages {
+
         stage('Notify Start') {
             steps {
                 echo '📢 Build started...'
                 slackSend(
                     channel: "${SLACK_CHANNEL}",
-                    color: '#439FE0', // blue
+                    color: '#439FE0',
                     message: "🚀 *Build Started* for `${env.JOB_NAME}` (#${env.BUILD_NUMBER})\n${env.BUILD_URL}"
                 )
             }
@@ -41,19 +41,20 @@ pipeline {
         stage('Build with Maven') {
             steps {
                 echo '⚙️ Running Maven build...'
-                // Use Maven wrapper if available, fallback to system Maven
                 sh '''
                     set -e
+
                     if [ -f "./mvnw" ]; then
                         echo "Using Maven Wrapper..."
+                        chmod +x mvnw
                         ./mvnw clean package -DskipTests
                     else
                         echo "Using System Maven..."
                         mvn clean package -DskipTests
                     fi
 
-                    echo "Listing target/ directory contents:"
-                    ls -al target || true
+                    echo "Listing target/ directory:"
+                    ls -al target
                 '''
             }
         }
@@ -62,35 +63,33 @@ pipeline {
             steps {
                 echo '🚀 Deploying application to Tomcat...'
 
-                withCredentials([usernamePassword(credentialsId: '39eead8c-6c36-422b-810d-5758be33fce2',
-                                                 usernameVariable: 'TOMCAT_USER',
-                                                 passwordVariable: 'TOMCAT_PASS')]) {
+                withCredentials([
+                    usernamePassword(credentialsId: '39eead8c-6c36-422b-810d-5758be33fce2',
+                                     usernameVariable: 'TOMCAT_USER',
+                                     passwordVariable: 'TOMCAT_PASS')
+                ]) {
+
                     sh '''
                         set -eu
 
-                        echo "🔍 Looking for build artifact..."
-                        ARTIFACT=$(find target -maxdepth 1 -type f \\( -name "*.war" -o -name "*.jar" \\) | head -n 1 || true)
+                        echo "🔍 Searching artifact..."
+                        ARTIFACT=$(find target -maxdepth 1 -type f -name "*.war" | head -n 1 || true)
 
                         if [ -z "$ARTIFACT" ]; then
-                          echo "❌ ERROR: No WAR or JAR file found in target/"
-                          ls -al target || true
+                          echo "❌ ERROR: No WAR file found in target/"
                           exit 1
                         fi
 
                         echo "✅ Found artifact: $ARTIFACT"
 
-                        # If it's a JAR, copy it as WAR (Tomcat deploys WARs)
-                        if [[ "$ARTIFACT" == *.jar ]]; then
-                            TMP_WAR="${ARTIFACT%.jar}.war"
-                            echo "Converting JAR to WAR for deployment..."
-                            cp "$ARTIFACT" "$TMP_WAR"
-                            ARTIFACT="$TMP_WAR"
-                        fi
+                        echo "♻️ Removing old deployment..."
+                        curl --fail -u "$TOMCAT_USER:$TOMCAT_PASS" \
+                             "${TOMCAT_DEPLOY_URL}/undeploy?path=/myapp" || true
 
-                        echo "🚀 Deploying $ARTIFACT to Tomcat at ${TOMCAT_URL} ..."
+                        echo "🚀 Deploying new version..."
                         curl --fail -u "$TOMCAT_USER:$TOMCAT_PASS" \
                              -T "$ARTIFACT" \
-                             "http://localhost:9090/manager/text/deploy?path=/myapp&update=true"
+                             "${TOMCAT_DEPLOY_URL}/deploy?path=/myapp&update=true"
 
                         echo "✅ Deployment successful!"
                     '''
@@ -105,7 +104,7 @@ pipeline {
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: 'good',
-                message: "✅ *SUCCESS* — `${env.JOB_NAME}` build #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
+                message: "✅ *SUCCESS* — `${env.JOB_NAME}` #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
             )
         }
 
@@ -114,7 +113,7 @@ pipeline {
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: 'danger',
-                message: "❌ *FAILURE* — `${env.JOB_NAME}` build #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
+                message: "❌ *FAILURE* — `${env.JOB_NAME}` #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
             )
         }
 
@@ -123,7 +122,7 @@ pipeline {
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: '#AAAAAA',
-                message: "🛑 *ABORTED* — `${env.JOB_NAME}` build #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
+                message: "🛑 *ABORTED* — `${env.JOB_NAME}` #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
             )
         }
 
@@ -132,7 +131,7 @@ pipeline {
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: 'warning',
-                message: "⚠️ *UNSTABLE BUILD* — `${env.JOB_NAME}` build #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
+                message: "⚠️ *UNSTABLE BUILD* — `${env.JOB_NAME}` #${env.BUILD_NUMBER}\n${env.BUILD_URL}"
             )
         }
 
@@ -141,7 +140,7 @@ pipeline {
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: '#AAAAAA',
-                message: "📣 *Build Completed* — `${env.JOB_NAME}` #${env.BUILD_NUMBER} finished.\nStatus: ${currentBuild.currentResult}\n${env.BUILD_URL}"
+                message: "📣 *Build Completed* — `${env.JOB_NAME}` #${env.BUILD_NUMBER}\nStatus: ${currentBuild.currentResult}\n${env.BUILD_URL}"
             )
         }
     }
