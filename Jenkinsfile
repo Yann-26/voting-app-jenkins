@@ -11,7 +11,7 @@ pipeline {
         SLACK_CREDENTIALS_ID = 'demo-channel'
 
         // === Tomcat Manager URL ===
-        TOMCAT_URL = 'https://eclipse-shaped-advance-side.trycloudflare.com/manager/html'
+        TOMCAT_URL = 'http://localhost:9090/manager/html'
     }
 
     options {
